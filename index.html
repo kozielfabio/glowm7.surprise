@@ -29,6 +29,12 @@ html.lock,html.lock body{overflow:hidden}
 .word{position:absolute;left:0;right:0;top:36%;text-align:center;font:800 clamp(56px,16vw,180px)/1 Manrope,sans-serif;letter-spacing:-.05em;padding:0 5%;opacity:0;pointer-events:none}
 .word.on{animation:wi .8s cubic-bezier(.2,.8,.2,1) forwards}
 @keyframes wi{from{opacity:0;transform:scale(1.15);filter:blur(8px)}to{opacity:1;transform:scale(1);filter:none}}
+.gate{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);display:grid;place-items:center;min-width:230px;height:66px;padding:0 34px;border-radius:999px;border:1px solid rgba(125,211,252,.6);background:rgba(125,211,252,.07);color:var(--ice);font:800 15px Manrope;letter-spacing:.34em;cursor:pointer;backdrop-filter:blur(4px);animation:gp 2.2s infinite;transition:opacity .5s,transform .3s;-webkit-tap-highlight-color:transparent}
+@keyframes gp{0%{box-shadow:0 0 0 0 rgba(125,211,252,.5),inset 0 0 22px rgba(125,211,252,.14)}100%{box-shadow:0 0 0 24px rgba(125,211,252,0),inset 0 0 22px rgba(125,211,252,.14)}}
+.gate:active{transform:translate(-50%,-50%) scale(.96)}
+.enc{position:absolute;left:0;right:0;top:19%;text-align:center;font-size:clamp(12px,3.4vw,15px);letter-spacing:.3em;color:#456884;line-height:2.1;white-space:pre-line;transition:opacity .6s}
+.sub{position:absolute;left:0;right:0;top:55%;text-align:center;font-size:10px;letter-spacing:.2em;color:#6b7c92;padding:0 6%;transition:opacity .5s}
+#intro.go .gate,#intro.go .sub,#intro.go .enc{opacity:0;pointer-events:none}
 .hint{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:12px;letter-spacing:.14em;color:#8195ad;transition:opacity .4s;animation:bl 1.6s infinite}
 @keyframes bl{50%{opacity:.35}}
 .hint.hide{opacity:0;animation:none}
@@ -129,7 +135,9 @@ h2{font:800 clamp(32px,6vw,60px)/1.06 Manrope,sans-serif;letter-spacing:-.035em;
   <canvas id="wave" aria-hidden="true"></canvas>
   <div class="tag mono" id="tag">&gt; SINAL INTERCEPTADO</div>
   <div class="word" id="word"></div>
-  <div class="hint mono" id="hint">toque para descriptografar</div>
+  <div class="enc mono" id="enc" aria-hidden="true"></div>
+  <button class="gate" id="gate" type="button" aria-label="Decifrar mensagem"><span id="gt">DECIFRAR</span></button>
+  <div class="sub mono">1 MENSAGEM CRIPTOGRAFADA · ORIGEM DESCONHECIDA</div>
   <button class="skip" id="skip" type="button">pular</button>
 </div>
 <div class="bar" id="bar"></div>
@@ -241,9 +249,9 @@ h2{font:800 clamp(32px,6vw,60px)/1.06 Manrope,sans-serif;letter-spacing:-.035em;
   function shimmer(){[1320,1760,2640].forEach(function(f,k){setTimeout(function(){beep(f,.9,.035,'sine')},k*110)})}
   var blip=function(){thump(.45)},tick=function(){pop(900,.09)};
   function setLv(v,t){if(M)M.gain.setTargetAtTime(v,AC.currentTime,t||.05)}
-  function unlock(){if(unlocked||!AC)return;AC.resume&&AC.resume();unlocked=true;if(!done)hum();chirp();setLv(1);var h=$('hint');if(h)h.classList.add('hide');if(tapRes)tapRes()}
+  function unlock(){if(unlocked||!AC)return;AC.resume&&AC.resume();unlocked=true;if(!done)hum();setLv(1)}
   ['pointerdown','pointerup','touchend','keydown','click'].forEach(function(ev){addEventListener(ev,unlock,{passive:true})});
-  if(AC)AC.resume().then(function(){if(AC.state==='running'&&!unlocked){unlocked=true;hum();tapRes()}}).catch(function(){});
+  if(AC)AC.resume().then(function(){if(AC.state==='running'&&!unlocked){unlocked=true;hum()}}).catch(function(){});
 
   // ===== ABERTURA =====
   var cv=$('wave'),cx=cv.getContext('2d'),W=0,H=0,A=6,TA=10,Ch=1,TC=1,live=true,done=false,skipped=false;
@@ -258,9 +266,15 @@ h2{font:800 clamp(32px,6vw,60px)/1.06 Manrope,sans-serif;letter-spacing:-.035em;
   function show(txt,amp,ch){wd.classList.remove('on');void wd.offsetWidth;wd.textContent=txt;wd.classList.add('on');TA=amp;TC=ch;blip();whoosh(.5,.18)}
   function finish(){if(done)return;done=true;whoosh(1.3,.5,true);setTimeout(shimmer,650);if(HM){HM.gain.setTargetAtTime(0,AC.currentTime,.6);setTimeout(function(){try{humG.disconnect()}catch(e){}},3000)}setTimeout(function(){setLv(.25,.5)},2300);
     intro.classList.add('out');document.documentElement.classList.remove('lock');scrollTo(0,0);setTimeout(function(){live=false},1000)}
+  var G='█▓▒░#@$%&01XZKQ7',rnd=function(n){var o='';for(var i=0;i<n;i++)o+=G[Math.random()*G.length|0];return o};
+  var enc=$('enc'),gt=$('gt');
+  setInterval(function(){if(!done)enc.textContent=rnd(20)+'\n'+rnd(20)+'\n'+rnd(20)},110);
+  function dec(el,fin){var f=0,iv=setInterval(function(){var o='';for(var i=0;i<fin.length;i++)o+=i<f/2?fin[i]:G[Math.random()*G.length|0];el.textContent=o;if(++f>fin.length*2+1){clearInterval(iv);el.textContent=fin}},60)}
+  dec(gt,'DECIFRAR');setInterval(function(){if(!done&&!intro.classList.contains('go'))dec(gt,'DECIFRAR')},3200);
+  $('gate').addEventListener('click',function(){unlock();tapRes()});
   async function run(){
     document.documentElement.classList.add('lock');
-    tg.classList.add('on');TA=12;TC=1;await Promise.race([tapP,wait(4500)]);if(skipped)return;chirp();await wait(1300);if(skipped)return;
+    tg.classList.add('on');TA=12;TC=1;await tapP;if(skipped)return;intro.classList.add('go');tg.textContent='> DECIFRANDO...';chirp();await wait(1300);if(skipped)return;
     tg.classList.remove('on');show('ZARIEL',34,.6);await wait(1300);if(skipped)return;
     show('GLOW M7',52,.3);await wait(1300);if(skipped)return;
     show('05.11',74,.08);await wait(1500);if(skipped)return;
